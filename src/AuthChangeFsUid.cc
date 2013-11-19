@@ -82,6 +82,9 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   uid_t uid = getUid(entity->name);
   TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user ", entity->name);
 
+  seteuid(0);
+  setegid(0);
+
   setfsuid(uid);
 
   return XrdAccPriv_All;
