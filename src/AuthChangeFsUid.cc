@@ -86,6 +86,7 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   setegid(0);
 
   setfsuid(uid);
+  setfsgid(uid);
 
   return XrdAccPriv_All;
 }
