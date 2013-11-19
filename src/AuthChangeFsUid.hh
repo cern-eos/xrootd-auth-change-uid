@@ -34,6 +34,7 @@
 typedef struct
 {
   uid_t uid;
+  gid_t gid;
   time_t lastUpdate;
 } UidAndTimeStamp;
 
@@ -58,7 +59,7 @@ public:
                    const Access_Operation oper) { return 0; };
 
 private:
-  uid_t getUid(const std::string &name);
+  void getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid);
   void updateUidCache(const std::string &name);
 
   std::map<std::string, UidAndTimeStamp> mNameUid;

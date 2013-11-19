@@ -46,11 +46,12 @@ AuthChangeFsUid::updateUidCache(const std::string &name)
   pass = getpwnam(name.c_str());
 
   uidAndTime->uid = pass->pw_uid;
+  uidAndTime->gid = pass->pw_gid;
   uidAndTime->lastUpdate = time(NULL);
 }
 
-uid_t
-AuthChangeFsUid::getUid(const std::string &name)
+void
+AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
 {
   bool updateCache = true;
 
@@ -68,9 +69,8 @@ AuthChangeFsUid::getUid(const std::string &name)
     updateUidCache(name);
   }
 
-  uid_t uid = mNameUid[name].uid;
-
-  return uid;
+  uid = mNameUid[name].uid;
+  gid = mNameUid[name].gid;
 }
 
 XrdAccPrivs
@@ -79,14 +79,18 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
                     const Access_Operation oper,
                     XrdOucEnv             *env)
 {
-  uid_t uid = getUid(entity->name);
+  uid_t uid;
+  gid_t gid;
+
+  getUidAndGid(entity->name, uid, gid);
+
   TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user ", entity->name);
 
   seteuid(0);
   setegid(0);
 
   setfsuid(uid);
-  setfsgid(uid);
+  setfsgid(gid);
 
   return XrdAccPriv_All;
 }
