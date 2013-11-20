@@ -14,3 +14,9 @@ lines to the server's configuration file:
 
   ofs.authlib /path/to/libAuthChangeFsUid.so
   ofs.authorize
+
+An optional delegate authentication library can also be set for additional
+authentication. This is done by adding the following line to the referred
+configuration file:
+
+  authchangefsuid.authlib /path/to/delegateAuthLib.so
