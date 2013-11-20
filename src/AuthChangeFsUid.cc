@@ -18,9 +18,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.*
  ************************************************************************/
 
+#include <dlfcn.h>
+#include <fcntl.h>
 #include <pwd.h>
 #include <sys/fsuid.h>
 #include <XrdOuc/XrdOucTrace.hh>
+#include <XrdOuc/XrdOucStream.hh>
 #include <XrdSys/XrdSysError.hh>
 #include "AuthChangeFsUid.hh"
 
@@ -73,6 +76,88 @@ AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
   gid = mNameUid[name].gid;
 }
 
+const char *
+AuthChangeFsUid::getDelegateAuthLibPath(const char *config)
+{
+  XrdOucStream Config;
+  int cfgFD;
+  char *var, *libPath = 0;
+
+  if ((cfgFD = open(config, O_RDONLY, 0)) < 0)
+    return 0;
+
+  Config.Attach(cfgFD);
+  while ((var = Config.GetMyFirstWord()))
+  {
+    if (strcmp(var, "authchangefsuid.authlib") == 0)
+    {
+      var += 14;
+      libPath = Config.GetWord();
+      break;
+    }
+  }
+
+  Config.Close();
+
+  return libPath;
+}
+
+void
+AuthChangeFsUid::loadDelegateAuthLib(const char *libPath)
+{
+  mDelegateAuthLibHandle = dlopen(libPath, RTLD_NOW);
+
+  if (mDelegateAuthLibHandle == 0)
+  {
+    TkEroute.Say("------ AuthChangeFsUid: Could not open auth lib ",
+                 libPath);
+    return;
+  }
+
+  mAuthObjHandler = (GetAuthObject_t) dlsym(mDelegateAuthLibHandle,
+                                           "XrdAccAuthorizeObject");
+
+  if (mAuthObjHandler == 0)
+  {
+    TkEroute.Say("------ AuthChangeFsUid: Could not symbol for "
+                 "XrdAccAuthorizeObject in ", libPath);
+
+    dlclose(mDelegateAuthLibHandle);
+    mDelegateAuthLibHandle = 0;
+    return;
+  }
+
+  mDelegateAuthLib = (*mAuthObjHandler)(mLogger, mConfig, mParam);
+}
+
+AuthChangeFsUid::AuthChangeFsUid(XrdSysLogger *logger,
+                                 const char   *config,
+                                 const char   *param)
+  : mLogger(logger),
+    mConfig(config),
+    mParam(param),
+    mDelegateAuthLibHandle(0),
+    mAuthObjHandler(0),
+    mDelegateAuthLib(0)
+{
+  const char *delegateAuthLibPath = getDelegateAuthLibPath(mConfig);
+
+  if (delegateAuthLibPath)
+    loadDelegateAuthLib(delegateAuthLibPath);
+}
+
+AuthChangeFsUid::~AuthChangeFsUid()
+{
+  delete mDelegateAuthLib;
+  mDelegateAuthLib = 0;
+
+  if (mDelegateAuthLibHandle)
+  {
+    dlclose(mDelegateAuthLibHandle);
+    mDelegateAuthLibHandle = 0;
+  }
+}
+
 XrdAccPrivs
 AuthChangeFsUid::Access(const XrdSecEntity    *entity,
                     const char            *path,
@@ -92,7 +177,10 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   setfsuid(uid);
   setfsgid(gid);
 
-  return XrdAccPriv_All;
+  if (mDelegateAuthLib == 0)
+    return XrdAccPriv_All;
+
+  return mDelegateAuthLib->Access(entity, path, oper, env);
 }
 
 extern "C" XrdAccAuthorize *XrdAccAuthorizeObject(XrdSysLogger *lp,
@@ -102,7 +190,8 @@ extern "C" XrdAccAuthorize *XrdAccAuthorizeObject(XrdSysLogger *lp,
   TkEroute.SetPrefix("access_auth_fsuid_");
   TkEroute.logger(lp);
 
-  XrdAccAuthorize* acc = dynamic_cast<XrdAccAuthorize*>(new AuthChangeFsUid());
+  AuthChangeFsUid *authlib = new AuthChangeFsUid(lp, cfn, parm);
+  XrdAccAuthorize* acc = dynamic_cast<XrdAccAuthorize*>(authlib);
 
   if (acc == 0)
     TkEroute.Say("Failed to create AuthChangeFsUid object!");

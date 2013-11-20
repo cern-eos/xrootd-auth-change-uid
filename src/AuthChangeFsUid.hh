@@ -38,11 +38,16 @@ typedef struct
   time_t lastUpdate;
 } UidAndTimeStamp;
 
+typedef XrdAccAuthorize *(*GetAuthObject_t)(XrdSysLogger *lp,
+                                            const char   *cfn,
+                                            const char   *parm);
+
 class AuthChangeFsUid : public XrdAccAuthorize
 {
 
 public:
-  AuthChangeFsUid() {};
+  AuthChangeFsUid(XrdSysLogger *logger, const char *config, const char *param);
+  virtual ~AuthChangeFsUid(void);
 
   XrdAccPrivs Access(const XrdSecEntity    *entity,
                      const char            *path,
@@ -61,8 +66,16 @@ public:
 private:
   void getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid);
   void updateUidCache(const std::string &name);
+  const char* getDelegateAuthLibPath(const char *config);
+  void loadDelegateAuthLib(const char *libPath);
 
+  XrdSysLogger *mLogger;
+  const char *mConfig;
+  const char *mParam;
   std::map<std::string, UidAndTimeStamp> mNameUid;
+  void *mDelegateAuthLibHandle;
+  GetAuthObject_t mAuthObjHandler;
+  XrdAccAuthorize *mDelegateAuthLib;
 };
 
 #endif // __AUTH_CHANGE_FS_UID_HH__
