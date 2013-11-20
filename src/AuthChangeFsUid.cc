@@ -160,9 +160,9 @@ AuthChangeFsUid::~AuthChangeFsUid()
 
 XrdAccPrivs
 AuthChangeFsUid::Access(const XrdSecEntity    *entity,
-                    const char            *path,
-                    const Access_Operation oper,
-                    XrdOucEnv             *env)
+                        const char            *path,
+                        const Access_Operation oper,
+                        XrdOucEnv             *env)
 {
   uid_t uid;
   gid_t gid;
