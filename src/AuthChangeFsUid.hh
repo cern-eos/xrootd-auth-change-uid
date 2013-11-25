@@ -76,6 +76,7 @@ private:
   void *mDelegateAuthLibHandle;
   GetAuthObject_t mAuthObjHandler;
   XrdAccAuthorize *mDelegateAuthLib;
+  XrdSysMutex mMutex;
 };
 
 #endif // __AUTH_CHANGE_FS_UID_HH__

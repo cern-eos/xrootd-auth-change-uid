@@ -38,19 +38,28 @@ AuthChangeFsUid::updateUidCache(const std::string &name)
   struct passwd *pass;
   UidAndTimeStamp *uidAndTime = 0;
 
-  if (mNameUid.count(name) == 0)
   {
-    UidAndTimeStamp stamp = {0, 0};
-    mNameUid[name] = stamp;
-  }
+    XrdSysMutexHelper mutexHelper(mMutex);
 
-  uidAndTime = &mNameUid[name];
+    if (mNameUid.count(name) == 0)
+    {
+      UidAndTimeStamp stamp = {0, 0};
+      uidAndTime = &stamp;
+    }
+    else
+      uidAndTime = &mNameUid[name];
+  }
 
   pass = getpwnam(name.c_str());
 
-  uidAndTime->uid = pass->pw_uid;
-  uidAndTime->gid = pass->pw_gid;
-  uidAndTime->lastUpdate = time(NULL);
+  {
+    XrdSysMutexHelper mutexHelper(mMutex);
+
+    uidAndTime->uid = pass->pw_uid;
+    uidAndTime->gid = pass->pw_gid;
+    uidAndTime->lastUpdate = time(NULL);
+    mNameUid[name] = *uidAndTime;
+  }
 }
 
 void
@@ -58,12 +67,16 @@ AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
 {
   bool updateCache = true;
 
-  if (mNameUid.count(name) > 0)
   {
-    time_t lastUpdate = mNameUid[name].lastUpdate;
-    time_t currentTime = time(NULL);
+    XrdSysMutexHelper mutexHelper(mMutex);
 
-    updateCache = difftime(currentTime, lastUpdate) > CACHE_LIFE_TIME;
+    if (mNameUid.count(name) > 0)
+    {
+      time_t lastUpdate = mNameUid[name].lastUpdate;
+      time_t currentTime = time(NULL);
+
+      updateCache = difftime(currentTime, lastUpdate) > CACHE_LIFE_TIME;
+    }
   }
 
   if (updateCache)
@@ -72,8 +85,12 @@ AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
     updateUidCache(name);
   }
 
-  uid = mNameUid[name].uid;
-  gid = mNameUid[name].gid;
+  {
+    XrdSysMutexHelper mutexHelper(mMutex);
+
+    uid = mNameUid[name].uid;
+    gid = mNameUid[name].gid;
+  }
 }
 
 const char *
