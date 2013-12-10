@@ -23,6 +23,7 @@
 #include <pwd.h>
 #include <sys/fsuid.h>
 #include <XrdOuc/XrdOucTrace.hh>
+#include <XrdOuc/XrdOucEnv.hh>
 #include <XrdOuc/XrdOucStream.hh>
 #include <XrdSys/XrdSysError.hh>
 #include "AuthChangeFsUid.hh"
@@ -216,6 +217,9 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
 
   setfsuid(uid);
   setfsgid(gid);
+
+  env->PutInt("uid", uid);
+  env->PutInt("gid", gid);
 
   if (mDelegateAuthLib == 0)
     return XrdAccPriv_All;
