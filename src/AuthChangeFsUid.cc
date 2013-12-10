@@ -32,10 +32,21 @@
 XrdSysError TkEroute(0, "AuthChangeFsUid");
 XrdOucTrace TkTrace(&TkEroute);
 
+XrdVERSIONINFO(XrdAccAuthorizeObject, AuthChangeFsUid);
+
+extern XrdAccAuthorize *XrdAccDefaultAuthorizeObject(XrdSysLogger *lp,
+                                                     const char   *cfn,
+                                                     const char   *parm,
+                                                     XrdVersionInfo &vInfo);
+
 void
 AuthChangeFsUid::updateUidCache(const std::string &name)
 {
   struct passwd *pass;
+  struct passwd passwdinfo;
+  memset(&passwdinfo, 0, sizeof(struct passwd));
+  char namebuffer[16384];
+
   UidAndTimeStamp *uidAndTime = 0;
 
   {
@@ -50,15 +61,19 @@ AuthChangeFsUid::updateUidCache(const std::string &name)
       uidAndTime = &mNameUid[name];
   }
 
-  pass = getpwnam(name.c_str());
-
+  if (!getpwnam_r(name.c_str(), &passwdinfo,
+                  namebuffer, sizeof(namebuffer), &pass) && pass)
   {
     XrdSysMutexHelper mutexHelper(mMutex);
-
     uidAndTime->uid = pass->pw_uid;
     uidAndTime->gid = pass->pw_gid;
     uidAndTime->lastUpdate = time(NULL);
     mNameUid[name] = *uidAndTime;
+  }
+  else
+  {
+    TkEroute.Say("------ AuthChangeFsUid: [ERROR] getwpnam_r failed for "
+                 "user=",name.c_str());
   }
 }
 
