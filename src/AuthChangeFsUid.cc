@@ -137,6 +137,13 @@ AuthChangeFsUid::getDelegateAuthLibPath(const char *config)
 void
 AuthChangeFsUid::loadDelegateAuthLib(const char *libPath)
 {
+  if (libPath && (!strcmp(libPath,"default")))
+  {
+    mDelegateAuthLib = XrdAccDefaultAuthorizeObject(mLogger, mConfig, mParam,
+                                      XrdVERSIONINFOVAR(XrdAccAuthorizeObject));
+    return;
+  }
+
   mDelegateAuthLibHandle = dlopen(libPath, RTLD_NOW);
 
   if (mDelegateAuthLibHandle == 0)
@@ -230,5 +237,3 @@ extern "C" XrdAccAuthorize *XrdAccAuthorizeObject(XrdSysLogger *lp,
 
   return acc;
 }
-
-XrdVERSIONINFO(XrdAccAuthorizeObject, AuthChangeFsUid);

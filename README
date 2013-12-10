@@ -20,3 +20,7 @@ authentication. This is done by adding the following line to the referred
 configuration file:
 
   authchangefsuid.authlib /path/to/delegateAuthLib.so
+
+If the intrinsic default Acc library of XROOTD should be used add:
+
+  authchangefsuid.authlib default
