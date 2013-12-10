@@ -208,7 +208,8 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
 
   getUidAndGid(entity->name, uid, gid);
 
-  TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user ", entity->name);
+  TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user=",
+               entity->name);
 
   seteuid(0);
   setegid(0);
