@@ -184,6 +184,9 @@ AuthChangeFsUid::AuthChangeFsUid(XrdSysLogger *logger,
 
   if (delegateAuthLibPath)
     loadDelegateAuthLib(delegateAuthLibPath);
+
+  seteuid(0);
+  setegid(0);
 }
 
 AuthChangeFsUid::~AuthChangeFsUid()
@@ -211,9 +214,6 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
 
   TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user=",
                entity->name);
-
-  seteuid(0);
-  setegid(0);
 
   setfsuid(uid);
   setfsgid(gid);
