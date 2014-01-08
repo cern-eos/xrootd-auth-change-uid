@@ -218,8 +218,11 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   setfsuid(uid);
   setfsgid(gid);
 
-  env->PutInt("uid", uid);
-  env->PutInt("gid", gid);
+  if (env)
+  {
+    env->PutInt("uid", uid);
+    env->PutInt("gid", gid);
+  }
 
   if (mDelegateAuthLib == 0)
     return XrdAccPriv_All;
