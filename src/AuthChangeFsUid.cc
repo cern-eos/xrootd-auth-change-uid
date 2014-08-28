@@ -75,6 +75,10 @@ AuthChangeFsUid::updateUidCache(const std::string &name)
   {
     TkEroute.Say("------ AuthChangeFsUid: [ERROR] getwpnam_r failed for "
                  "user=",name.c_str());
+    uidAndTime->uid = 99;
+    uidAndTime->gid = 99;
+    uidAndTime->lastUpdate = time(NULL);
+    mNameUid[name] = *uidAndTime;
   }
 }
 
@@ -182,6 +186,9 @@ AuthChangeFsUid::AuthChangeFsUid(XrdSysLogger *logger,
 {
   const char *delegateAuthLibPath = getDelegateAuthLibPath(mConfig);
 
+  seteuid(0);
+  setegid(0);
+
   if (delegateAuthLibPath)
     loadDelegateAuthLib(delegateAuthLibPath);
 
@@ -210,16 +217,15 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   uid_t uid;
   gid_t gid;
 
-  getUidAndGid(entity->name, uid, gid);
+  getUidAndGid(entity->name?entity->name:"nobody", uid, gid);
 
   TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user=",
-               entity->name);
+               entity->name?entity->name:"nobody");
 
   setfsuid(uid);
   setfsgid(gid);
 
-  if (env)
-  {
+  if (env) {
     env->PutInt("uid", uid);
     env->PutInt("gid", gid);
   }
