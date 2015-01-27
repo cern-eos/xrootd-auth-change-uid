@@ -1,6 +1,6 @@
 %define _unpackaged_files_terminate_build 0
 Name:		xrootd-auth-change-uid
-Version:	0.1.0
+Version:	0.2.0
 Release:	1
 Summary:	Authentication Plugin run threads with the fs ID of a connected client
 Prefix:         /usr
@@ -11,10 +11,10 @@ Source:        %{name}-%{version}-%{release}.tar.gz
 BuildRoot:     %{_tmppath}/%{name}-root
 
 BuildRequires: cmake >= 2.6
-BuildRequires: xrootd4-server-devel >= 4.0
-BuildRequires: xrootd4-private-devel >= 4.0
+BuildRequires: xrootd-server-devel >= 4.1
+BuildRequires: xrootd-private-devel >= 4.1
 
-Requires: xrootd4 >= 4.0
+Requires: xrootd >= 4.1
 
 
 %description
