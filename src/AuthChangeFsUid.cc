@@ -108,8 +108,16 @@ AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
   {
     XrdSysMutexHelper mutexHelper(mMutex);
 
-    uid = mNameUid[name].uid;
-    gid = mNameUid[name].gid;
+    if (name != "root") 
+    {
+      uid = mNameUid[name].uid;
+      gid = mNameUid[name].gid;
+    } 
+    else 
+    {
+      uid = 99;
+      gid = 99;
+    }
   }
 }
 
