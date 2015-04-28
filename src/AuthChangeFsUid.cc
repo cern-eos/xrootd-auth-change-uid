@@ -25,6 +25,7 @@
 #include <XrdOuc/XrdOucTrace.hh>
 #include <XrdOuc/XrdOucEnv.hh>
 #include <XrdOuc/XrdOucStream.hh>
+#include <XrdOuc/XrdOucString.hh>
 #include <XrdSys/XrdSysError.hh>
 #include "AuthChangeFsUid.hh"
 
@@ -108,16 +109,8 @@ AuthChangeFsUid::getUidAndGid(const std::string &name, uid_t &uid, gid_t &gid)
   {
     XrdSysMutexHelper mutexHelper(mMutex);
 
-    if (name != "root") 
-    {
-      uid = mNameUid[name].uid;
-      gid = mNameUid[name].gid;
-    } 
-    else 
-    {
-      uid = 99;
-      gid = 99;
-    }
+    uid = mNameUid[name].uid;
+    gid = mNameUid[name].gid;
   }
 }
 
@@ -225,10 +218,28 @@ AuthChangeFsUid::Access(const XrdSecEntity    *entity,
   uid_t uid;
   gid_t gid;
 
-  getUidAndGid(entity->name?entity->name:"nobody", uid, gid);
+  XrdOucString host = entity->host;
+
+  std::string name = entity->name?entity->name:"nobody";
+
+  if (name == "root") {
+    if ( host.length() &&
+	 ( host == "localhost" ) || 
+	 ( host == "localhost.localdomain") || 
+	 ( host == "localhost6" ) || 
+	 ( host == "localhost6.localdomain6") || 
+	 ( host == "127.0.0.1") ) {
+      name = "root"; //obsolete
+    } else {
+      TkEroute.Say("------ AuthChangeFsUid: Root squash (nobody) for host=",
+		   host.c_str());
+      name = "nobody";
+    }
+  }
+  getUidAndGid(name, uid, gid);
 
   TkEroute.Say("------ AuthChangeFsUid: Setting FS uid from user=",
-               entity->name?entity->name:"nobody");
+               name.c_str());
 
   setfsuid(uid);
   setfsgid(gid);
