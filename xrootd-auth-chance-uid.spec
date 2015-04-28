@@ -1,6 +1,6 @@
 %define _unpackaged_files_terminate_build 0
 Name:		xrootd-auth-change-uid
-Version:	0.2.1
+Version:	0.2.2
 Release:	1
 Summary:	Authentication Plugin run threads with the fs ID of a connected client
 Prefix:         /usr
